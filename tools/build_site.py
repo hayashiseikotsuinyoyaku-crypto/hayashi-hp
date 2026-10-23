@@ -130,6 +130,22 @@ TOTOP = ('<style>html{scroll-behavior:smooth}#totop{position:fixed;right:16px;bo
          '<button id="totop" type="button" aria-label="ページの一番上へ"><span aria-hidden="true" style="font-size:18px">▲</span>上へ</button>'
          '<script>(function(){var b=document.getElementById("totop");addEventListener("scroll",function(){b.classList.toggle("on",scrollY>600)},{passive:true});'
          'b.onclick=function(){scrollTo({top:0,behavior:"smooth"})}})()</script>\n')
+
+# 整骨院の情報（Googleが読み取りやすい形：構造化データ）。トップページだけに入れる
+import json as _json
+def clinic_ld():
+    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'PublicHolidays']
+    oh = [{'@type': 'OpeningHoursSpecification', 'dayOfWeek': days, 'opens': '09:00', 'closes': '12:00'},
+          {'@type': 'OpeningHoursSpecification', 'dayOfWeek': [d for d in days if d != 'Wednesday'], 'opens': '15:00', 'closes': '19:00'}]
+    d = {'@context': 'https://schema.org', '@type': 'MedicalClinic', '@id': BASE + '#clinic',
+         'name': 'はやしハリきゅう整骨院 江別本院', 'url': BASE, 'telephone': '+81-11-384-5454',
+         'image': BASE + 'img/gaikan.jpg', 'logo': BASE + 'img/logo.png',
+         'description': '江別市元町の整骨院・鍼灸院。骨ぴか整体（骨格矯正）、鍼灸、交通事故（自賠責保険）のケガに対応。予約優先制。日曜・祝日も受付。第1水曜日は休診、ほかの水曜日は午後休診。',
+         'address': {'@type': 'PostalAddress', 'postalCode': '067-0031', 'addressRegion': '北海道', 'addressLocality': '江別市', 'streetAddress': '元町32-1', 'addressCountry': 'JP'},
+         'openingHoursSpecification': oh, 'medicalSpecialty': 'Musculoskeletal',
+         'amenityFeature': [{'@type': 'LocationFeatureSpecification', 'name': '無料駐車場', 'value': True}],
+         'parentOrganization': {'@type': 'Organization', 'name': '株式会社ぴっかぴか'}}
+    return '<script type="application/ld+json">' + _json.dumps(d, ensure_ascii=False) + '</script>\n'
 written = []
 for f in pages:
     if f == 'Sp.html' or f in hidden: continue
@@ -175,6 +191,7 @@ for f in pages:
         j = s.rfind('</div>', 0, i)
         s = s[:j] + '<a href="Privacy.html" style="color: #FFFFFF">プライバシーポリシー</a>' + s[j:]
     s = s.replace('</head>', head_extra(f, s) + '</head>', 1)
+    if f == 'Main.html': s = s.replace('</head>', clinic_ld() + '</head>', 1)
     open(os.path.join(OUT, out_name(f)), 'w', encoding='utf-8').write(s)
     written.append(out_name(f))
 
