@@ -111,7 +111,7 @@ OLD = {
     'hari/about': 'Ryokin.html', 'hari/kotsupika': 'Kotsupika.html', 'hari/treatment': 'Jiko.html',
     'hari/faq': 'Faq.html', 'hari/staff': 'Staff.html', 'hari/news': 'Blog.html',
     'hari/recruit_info': 'Recruit.html', 'hari/recruit': 'Recruit.html', 'hari/serio-omagari': 'Omagari.html',
-    'hari/form': 'Privacy.html', 'cookie': 'Privacy.html', '_old_hari': '', 'info': 'Info.html', 'slim': 'Slim.html',
+    'hari/form': 'Privacy.html', 'cookie': 'Privacy.html#pp7-h', '_old_hari': '', 'info': 'Info.html', 'slim': 'Slim.html',
     'taisou': 'Taisou.html', 'taisou/tentore': 'Tentore.html', 'system': 'System.html',
     'news': 'Blog.html', 'news/detail': 'Blog.html', 'list': 'Blog.html',
 }
