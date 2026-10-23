@@ -25,6 +25,79 @@ for f in pages:
         post_date[f] = m.group(1) if m else '0000-00-00'
 hidden = {f for f, d in post_date.items() if d > TODAY}
 
+# ブログの入口：トップの「新着ブログ」・症状のページの「関連するブログ」（その日に出ている記事だけ・新しい順）
+CARDS = {}
+for _m in re.finditer(r'<a href="(BlogPost\d*\.html)"[^>]*>(.*?)</a>', rd('Blog.html'), re.S):
+    _f, _c = _m.group(1), _m.group(2)
+    _img = re.search(r'<img src="([^"]+)" alt="([^"]*)"', _c)
+    _cat = re.search(r'font-weight: 700">([^<]+)</span><time', _c)
+    _t = re.search(r'<b[^>]*>(.*?)</b>', _c, re.S)
+    _d = re.search(r'<time[^>]*>([^<]+)</time>', _c)
+    if _img and _t:
+        CARDS[_f] = dict(img=_img.group(1), alt=_img.group(2), cat=_cat.group(1) if _cat else '', title=_t.group(1), dtext=_d.group(1) if _d else '')
+RELATED = {
+    'Youtsu.html': ['BlogPost.html', 'BlogPost3.html', 'BlogPost8.html', 'BlogPost7.html', 'BlogPost22.html'],
+    'Gikkuri.html': ['BlogPost3.html', 'BlogPost.html', 'BlogPost8.html', 'BlogPost22.html'],
+    'Yukikaki.html': ['BlogPost.html', 'BlogPost3.html', 'BlogPost8.html'],
+    'Kubikata.html': ['BlogPost2.html', 'BlogPost5.html'],
+    'Zutsu.html': ['BlogPost5.html', 'BlogPost2.html'],
+    'Nechigae.html': ['BlogPost5.html', 'BlogPost2.html'],
+    'Gojukata.html': ['BlogPost20.html', 'BlogPost2.html'],
+    'Hiza.html': ['BlogPost17.html', 'BlogPost13.html'],
+    'Tentou.html': ['BlogPost4.html'],
+    'Nenza.html': ['BlogPost23.html', 'BlogPost4.html'],
+    'Sports.html': ['BlogPost23.html', 'BlogPost13.html'],
+    'Zakotsu.html': ['BlogPost7.html', 'BlogPost3.html'],
+    'Karada.html': ['BlogPost7.html', 'BlogPost9.html'],
+    'Kotsupika.html': ['BlogPost9.html', 'BlogPost7.html'],
+    'Jiko.html': ['BlogPost6.html', 'BlogPost11.html', 'BlogPost12.html', 'BlogPost24.html', 'BlogPost14.html', 'BlogPost15.html',
+                  'BlogPost16.html', 'BlogPost18.html', 'BlogPost19.html', 'BlogPost21.html'],
+}
+
+
+def visible_latest(files, n=3):
+    fs = [f for f in files if f in CARDS and f not in hidden]
+    return sorted(fs, key=lambda f: post_date.get(f, ''), reverse=True)[:n]
+
+
+def blog_cards(files, sp=False):
+    out = []
+    for f in files:
+        c = CARDS[f]
+        if sp:  # スマホ：写真を左に小さく・文字を右に（縦に長くならないように）
+            out.append('<a href="%s" style="text-decoration: none; color: #1B2A27; background: #FFFFFF; border: 1px solid #C9D8D4; border-radius: 14px; overflow: hidden; display: grid; grid-template-columns: 112px 1fr; align-items: center">'
+                       '<img src="%s" alt="%s" loading="lazy" style="width: 112px; height: 100%%; min-height: 96px; max-height: 120px; object-fit: cover; display: block; background: #F2F6F4">'
+                       '<span style="padding: 10px 12px; display: flex; flex-direction: column; gap: 4px"><span style="display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center">'
+                       '<span style="display: inline-flex; align-items: center; min-height: 22px; padding: 0 8px; border-radius: 999px; background: #E3F0EB; color: #17594F; font-size: 11px; font-weight: 700">%s</span>'
+                       '<time datetime="%s" style="font-size: 11px; color: #4A5C58">%s</time></span><b style="font-size: 15px; line-height: 1.5">%s</b></span></a>'
+                       % (f, c['img'], c['alt'], c['cat'], post_date.get(f, ''), c['dtext'], c['title']))
+            continue
+        out.append('<a href="%s" style="text-decoration: none; color: #1B2A27; background: #FFFFFF; border: 1px solid #C9D8D4; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column">'
+                   '<img src="%s" alt="%s" loading="lazy" style="width: 100%%; aspect-ratio: 16 / 10; object-fit: cover; display: block; background: #F2F6F4">'
+                   '<span style="padding: 12px 14px 16px; display: flex; flex-direction: column; gap: 6px"><span style="display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center">'
+                   '<span style="display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: 999px; background: #E3F0EB; color: #17594F; font-size: 12px; font-weight: 700">%s</span>'
+                   '<time datetime="%s" style="font-size: 12px; color: #4A5C58">%s</time></span><b style="font-size: %s; line-height: 1.5">%s</b></span></a>'
+                   % (f, c['img'], c['alt'], c['cat'], post_date.get(f, ''), c['dtext'], '16px' if sp else '17px', c['title']))
+    return ''.join(out)
+
+
+def blog_section(title, files, sp=False, bg='#FFFFFF'):
+    if not files:
+        return ''
+    if sp:
+        return ('<section aria-label="%s" style="background: %s; padding: 28px 16px; display: flex; flex-direction: column; gap: 12px">'
+                '<h2 class="reveal" style="margin: 0; font-size: 22px; font-weight: 900">%s</h2>'
+                '<div style="display: grid; grid-template-columns: 1fr; gap: 12px">%s</div>'
+                '<a href="Blog.html" style="font-weight: 700">ブログの一覧を見る</a></section>\n') % (title, bg, title, blog_cards(files, True))
+    return ('<section aria-label="%s" style="background: %s">'
+            '<div style="max-width: 1200px; margin: 0 auto; padding: 56px 24px; display: flex; flex-direction: column; gap: 20px">'
+            '<h2 class="reveal" style="margin: 0; font-size: 28px; line-height: 1.4; font-weight: 900">%s</h2>'
+            '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 360px)); gap: 20px">%s</div>'
+            '<a href="Blog.html" style="font-weight: 700">ブログの一覧を見る</a></div></section>\n') % (title, bg, title, blog_cards(files))
+
+
+LATEST = visible_latest(list(CARDS))
+
 def out_name(f): return 'index.html' if f == 'Main.html' else f
 def fix_links(s):
     s = re.sub(r'href="(?:Main|Sp)\.html(#[^"]*)?"', lambda m: 'href="./' + (m.group(1) or '') + '"', s)
@@ -61,8 +134,12 @@ written = []
 for f in pages:
     if f == 'Sp.html' or f in hidden: continue
     s = rd(f)
+    if f in RELATED:
+        s = s.replace('<footer', blog_section('関連するブログ', visible_latest(RELATED[f]), bg='#F7FAF9') + '<footer', 1)
     if f == 'Main.html':
         sp = rd('Sp.html'); spb = body_of(sp)
+        s = s.replace('<section id="access"', blog_section('新着ブログ', LATEST) + '<section id="access"', 1)
+        spb = spb.replace('<section style="background: #FFFFFF; padding: 28px 16px 120px', blog_section('新着ブログ', LATEST, sp=True, bg='#F7FAF9') + '<section style="background: #FFFFFF; padding: 28px 16px 120px', 1)
         # スマホ版のidは重ならないように sp- を付ける（ページ内リンクも）
         ids = set(re.findall(r'id="([^"]+)"', spb)) - {'sp-menu'}
         for i in ids:
