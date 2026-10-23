@@ -60,6 +60,10 @@ for f in pages:
         ids = set(re.findall(r'id="([^"]+)"', spb)) - {'sp-menu'}
         for i in ids:
             spb = spb.replace('id="%s"' % i, 'id="sp-%s"' % i).replace('aria-labelledby="%s"' % i, 'aria-labelledby="sp-%s"' % i).replace('href="#%s"' % i, 'href="#sp-%s"' % i)
+        k = spb.find('<nav aria-label="グループのページ"')
+        if k > 0:
+            e = spb.find('</nav>', k)
+            spb = spb[:e] + '<a href="Privacy.html" style="color: #FFFFFF">プライバシーポリシー</a>' + spb[e:]
         sw = '<style>.v-sp{display:none}@media (max-width:767px){.v-pc{display:none}.v-sp{display:block}}</style>'
         sph = re.sub(r'<(meta|title)[^>]*>(?:.*?</title>)?', '', head_of(sp), flags=re.S)
         s = s.replace('</head>', sph + sw + '\n</head>', 1)
@@ -79,6 +83,11 @@ for f in pages:
 <script>document.querySelectorAll('[data-f]').forEach(function(b){b.onclick=function(){var f=b.dataset.f;document.querySelectorAll('[data-f]').forEach(function(x){x.setAttribute('aria-pressed',String(x===b))});document.querySelectorAll('a[data-cat]').forEach(function(a){a.style.display=!f||a.dataset.cat===f?'':'none'})}})</script>
 </body>''', 1)
     s = fix_links(s)
+    # すべてのページの一番下に「プライバシーポリシー」
+    i = s.rfind('</footer>')
+    if i > 0 and 'Privacy.html' not in s[s.rfind('<footer', 0, i):i]:
+        j = s.rfind('</div>', 0, i)
+        s = s[:j] + '<a href="Privacy.html" style="color: #FFFFFF">プライバシーポリシー</a>' + s[j:]
     s = s.replace('</head>', head_extra(f, s) + '</head>', 1)
     open(os.path.join(OUT, out_name(f)), 'w', encoding='utf-8').write(s)
     written.append(out_name(f))
@@ -102,7 +111,7 @@ OLD = {
     'hari/about': 'Ryokin.html', 'hari/kotsupika': 'Kotsupika.html', 'hari/treatment': 'Jiko.html',
     'hari/faq': 'Faq.html', 'hari/staff': 'Staff.html', 'hari/news': 'Blog.html',
     'hari/recruit_info': 'Recruit.html', 'hari/recruit': 'Recruit.html', 'hari/serio-omagari': 'Omagari.html',
-    'hari/form': '', 'cookie': '', '_old_hari': '', 'info': 'Info.html', 'slim': 'Slim.html',
+    'hari/form': 'Privacy.html', 'cookie': 'Privacy.html', '_old_hari': '', 'info': 'Info.html', 'slim': 'Slim.html',
     'taisou': 'Taisou.html', 'taisou/tentore': 'Tentore.html', 'system': 'System.html',
     'news': 'Blog.html', 'news/detail': 'Blog.html', 'list': 'Blog.html',
 }
