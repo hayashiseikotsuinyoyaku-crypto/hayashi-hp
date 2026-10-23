@@ -1,0 +1,37 @@
+# HPを作ってGitHub Pagesに出す。毎日0:05（日本時間）にも作り直すので、予約したブログがその日に出る
+name: HPを公開
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '5 15 * * *'   # 日本時間 0:05
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # 仮公開中：github.io のアドレス・検索に出さない。本公開の日に hayashi-group.jp / PREVIEW 0 に変える
+      SITE_BASE: https://hayashiseikotsuinyoyaku-crypto.github.io/hayashi-hp/
+      PREVIEW: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/build_site.py src/pages _site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.d.outputs.page_url }}
+    steps:
+      - id: d
+        uses: actions/deploy-pages@v4
