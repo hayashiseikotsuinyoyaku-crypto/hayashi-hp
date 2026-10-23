@@ -50,6 +50,13 @@ def head_extra(f, s):
 def body_of(s): return s[s.find('<body>') + 6: s.rfind('</body>')]
 def head_of(s): return s[s.find('<head>') + 6: s.find('</head>')]
 
+TOTOP = ('<style>html{scroll-behavior:smooth}#totop{position:fixed;right:16px;bottom:24px;z-index:60;width:56px;height:56px;border-radius:50%;border:2px solid #17594F;'
+         'background:#FFFFFF;color:#17594F;font:700 12px/1.1 "Zen Kaku Gothic New","Hiragino Sans",sans-serif;cursor:pointer;box-shadow:0 4px 14px rgba(27,42,39,.2);'
+         'display:none;flex-direction:column;align-items:center;justify-content:center;gap:2px}#totop.on{display:flex}'
+         '@media (max-width:767px){body:has(.v-sp) #totop{bottom:96px}}</style>'
+         '<button id="totop" type="button" aria-label="ページの一番上へ"><span aria-hidden="true" style="font-size:18px">▲</span>上へ</button>'
+         '<script>(function(){var b=document.getElementById("totop");addEventListener("scroll",function(){b.classList.toggle("on",scrollY>600)},{passive:true});'
+         'b.onclick=function(){scrollTo({top:0,behavior:"smooth"})}})()</script>\n')
 written = []
 for f in pages:
     if f == 'Sp.html' or f in hidden: continue
@@ -83,6 +90,8 @@ for f in pages:
 <script>document.querySelectorAll('[data-f]').forEach(function(b){b.onclick=function(){var f=b.dataset.f;document.querySelectorAll('[data-f]').forEach(function(x){x.setAttribute('aria-pressed',String(x===b))});document.querySelectorAll('a[data-cat]').forEach(function(a){a.style.display=!f||a.dataset.cat===f?'':'none'})}})</script>
 </body>''', 1)
     s = fix_links(s)
+    # 「上へ」ボタン（下にスクロールすると右下に出る。押すとページの一番上へ）
+    s = s.replace('</body>', TOTOP + '</body>', 1)
     # すべてのページの一番下に「プライバシーポリシー」
     i = s.rfind('</footer>')
     if i > 0 and 'Privacy.html' not in s[s.rfind('<footer', 0, i):i]:
