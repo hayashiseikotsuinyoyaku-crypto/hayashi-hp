@@ -66,18 +66,19 @@ def blog_cards(files, sp=False):
         c = CARDS[f]
         if sp:  # スマホ：写真を左に小さく・文字を右に（縦に長くならないように）
             out.append('<a href="%s" style="text-decoration: none; color: #1B2A27; background: #FFFFFF; border: 1px solid #C9D8D4; border-radius: 14px; overflow: hidden; display: grid; grid-template-columns: 112px 1fr; align-items: center">'
-                       '<img src="%s" alt="%s" loading="lazy" style="width: 112px; height: 100%%; min-height: 96px; max-height: 120px; object-fit: cover; display: block; background: #F2F6F4">'
+                       '<img src="%s" alt="%s" loading="lazy" style="width: 112px; height: 100%%; min-height: 96px; max-height: 120px; object-fit: contain; display: block; background: #F2F6F4">'
                        '<span style="padding: 10px 12px; display: flex; flex-direction: column; gap: 4px"><span style="display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center">'
                        '<span style="display: inline-flex; align-items: center; min-height: 22px; padding: 0 8px; border-radius: 999px; background: #E3F0EB; color: #17594F; font-size: 11px; font-weight: 700">%s</span>'
                        '<time datetime="%s" style="font-size: 11px; color: #4A5C58">%s</time></span><b style="font-size: 15px; line-height: 1.5">%s</b></span></a>'
                        % (f, c['img'], c['alt'], c['cat'], post_date.get(f, ''), c['dtext'], c['title']))
             continue
         out.append('<a href="%s" style="text-decoration: none; color: #1B2A27; background: #FFFFFF; border: 1px solid #C9D8D4; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column">'
-                   '<img src="%s" alt="%s" loading="lazy" style="width: 100%%; aspect-ratio: 16 / 10; object-fit: cover; display: block; background: #F2F6F4">'
+                   '<img src="%s" alt="%s" loading="lazy" style="width: 100%%; aspect-ratio: 16 / 10; object-fit: contain; display: block; background: #F2F6F4">'
                    '<span style="padding: 12px 14px 16px; display: flex; flex-direction: column; gap: 6px"><span style="display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center">'
                    '<span style="display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: 999px; background: #E3F0EB; color: #17594F; font-size: 12px; font-weight: 700">%s</span>'
                    '<time datetime="%s" style="font-size: 12px; color: #4A5C58">%s</time></span><b style="font-size: %s; line-height: 1.5">%s</b></span></a>'
                    % (f, c['img'], c['alt'], c['cat'], post_date.get(f, ''), c['dtext'], '16px' if sp else '17px', c['title']))
+    out = [o.replace('align-items: center"><span style="display: inline-flex', 'align-items: center">' + NEWB + '<span style="display: inline-flex', 1) if re.search(r'href="(BlogPost\d*\.html)"', o).group(1) in NEW else o for o in out]
     return ''.join(out)
 
 
@@ -97,6 +98,10 @@ def blog_section(title, files, sp=False, bg='#FFFFFF'):
 
 
 LATEST = visible_latest(list(CARDS))
+_td = datetime.date.fromisoformat(TODAY)
+NEW = {f for f, d in post_date.items() if f not in hidden and d != '0000-00-00' and (_td - datetime.date.fromisoformat(d)).days <= 7}
+NEWB = '<span style="display: inline-flex; align-items: center; min-height: 20px; padding: 0 8px; border-radius: 999px; background: #D9480F; color: #FFFFFF; font-size: 11px; font-weight: 900; letter-spacing: 0.06em">NEW</span>'
+NEWB_S = '<span aria-label="新しい記事があります" style="display: inline-block; margin-left: 4px; padding: 0 5px; border-radius: 6px; background: #D9480F; color: #FFFFFF; font-size: 10px; font-weight: 900; line-height: 1.6; vertical-align: middle">NEW</span>'
 
 def out_name(f): return 'index.html' if f == 'Main.html' else f
 def fix_links(s):
@@ -183,6 +188,11 @@ for f in pages:
 <script>document.querySelectorAll('[data-f]').forEach(function(b){b.onclick=function(){var f=b.dataset.f;document.querySelectorAll('[data-f]').forEach(function(x){x.setAttribute('aria-pressed',String(x===b))});document.querySelectorAll('a[data-cat]').forEach(function(a){a.style.display=!f||a.dataset.cat===f?'':'none'})}})</script>
 </body>''', 1)
     s = fix_links(s)
+    if f == 'Blog.html':
+        for nf in NEW:
+            s = re.sub(r'(<a data-cat="[^"]*" href="%s".*?<span style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">)' % re.escape(nf), lambda m: m.group(1) + NEWB, s, count=1, flags=re.S)
+    if NEW:
+        s = re.sub(r'(<a href="Blog\.html"[^>]*>ブログ(?:（[^<]*）)?)(?=</a>)', lambda m: m.group(1) + NEWB_S, s)
     # 「上へ」ボタン（下にスクロールすると右下に出る。押すとページの一番上へ）
     s = s.replace('</body>', TOTOP + '</body>', 1)
     # すべてのページの一番下に「プライバシーポリシー」
