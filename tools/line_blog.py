@@ -17,10 +17,13 @@ for f in sorted(os.listdir(SRC)):
     s = open(os.path.join(SRC, f), encoding='utf-8').read()
     d = re.search(r'<time datetime="(\d{4}-\d{2}-\d{2})"', s)
     t = re.search(r'<h1[^>]*>(.*?)</h1>', s, re.S)
-    if d and t: posts.append(dict(f=f, d=d.group(1), title=re.sub(r'<[^>]+>', '', t.group(1)).strip()))
+    c = re.search(r'font-weight: 700">([^<]+)</span><time', s)
+    if d and t: posts.append(dict(f=f, d=d.group(1), cat=c.group(1) if c else '', title=re.sub(r'<[^>]+>', '', t.group(1)).strip()))
 today = [p for p in posts if p['d'] == TODAY]
 seq = sorted(p['d'] for p in posts if p['d'] >= START)
 send_day = TODAY in seq and seq.index(TODAY) % 2 == 0
+# 「院からのお知らせ」（年末年始の休みなど）は、1本おきのルールに関係なく送る（10/24 代表：案A）
+if any(p['cat'] == '院からのお知らせ' for p in today) and TODAY >= START: send_day = True
 if not today or not send_day:
     print('今日はお知らせなし', TODAY, '記事あり' if today else '記事なし', '送る日' if send_day else '送らない週'); sys.exit(0)
 p = today[0]
@@ -28,11 +31,11 @@ blog = open(os.path.join(SRC, 'Blog.html'), encoding='utf-8').read()
 m = re.search(r'<a href="%s"[^>]*>\s*<img src="\./img/([^"]+)"' % re.escape(p['f']), blog)
 img = BASE + 'img/' + (m.group(1) if m else 'logo.png')
 url = BASE + p['f'] + '?utm_source=line&utm_medium=message&utm_campaign=blog'
-msg = {'type': 'flex', 'altText': '【カラダのブログ】' + p['title'], 'contents': {
+msg = {'type': 'flex', 'altText': ('【院からのお知らせ】' if p['cat'] == '院からのお知らせ' else '【カラダのブログ】') + p['title'], 'contents': {
     'type': 'bubble',
     'hero': {'type': 'image', 'url': img, 'size': 'full', 'aspectRatio': '16:10', 'aspectMode': 'cover', 'action': {'type': 'uri', 'uri': url}},
     'body': {'type': 'box', 'layout': 'vertical', 'spacing': 'sm', 'contents': [
-        {'type': 'text', 'text': '今週のカラダのブログ', 'size': 'sm', 'color': '#17594F', 'weight': 'bold'},
+        {'type': 'text', 'text': '院からのお知らせ' if p['cat'] == '院からのお知らせ' else '今週のカラダのブログ', 'size': 'sm', 'color': '#17594F', 'weight': 'bold'},
         {'type': 'text', 'text': p['title'], 'size': 'lg', 'weight': 'bold', 'wrap': True, 'color': '#1B2A27'},
         {'type': 'text', 'text': 'はやしハリきゅう整骨院 江別本院', 'size': 'xs', 'color': '#4A5C58'}]},
     'footer': {'type': 'box', 'layout': 'vertical', 'contents': [
