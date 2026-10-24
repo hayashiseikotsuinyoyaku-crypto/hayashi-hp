@@ -1,0 +1,18 @@
+# ブログの公開日に、公式LINEへお知らせ（月2回）。毎日10:00（日本時間）に見て、送る日だけ送る
+name: ブログをLINEでお知らせ
+on:
+  schedule:
+    - cron: '0 1 * * *'   # 日本時間 10:00
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    env:
+      SITE_BASE: https://hayashi-group.jp/
+      LINE_TOKEN: ${{ secrets.LINE_TOKEN }}
+      LINE_BLOG_ON: ${{ vars.LINE_BLOG_ON }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/line_blog.py src/pages
