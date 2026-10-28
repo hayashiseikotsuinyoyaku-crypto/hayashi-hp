@@ -227,6 +227,10 @@ OLD = {
     'hari/form': 'Privacy.html', 'cookie': 'Privacy.html#pp7-h', '_old_hari': '', 'info': 'Info.html', 'slim': 'Slim.html',
     'taisou': 'Taisou.html', 'taisou/tentore': 'Tentore.html', 'system': 'System.html',
     'news': 'Blog.html', 'news/detail': 'Blog.html', 'list': 'Blog.html',
+    # 10/28 旧サイトを全部たどって見つかった残りのページ
+    'slim/biyoushin': 'Ryokin.html', 'slim/ems': 'Slim.html', 'slim/self': 'Slim.html', 'slim/news': 'Blog.html', 'slim/news/detail': 'Blog.html',
+    'hari/contact': '#first', 'hari/treatment/column': 'Jiko.html', 'hari/treatment/column/detail': 'Jiko.html',
+    'hari/staff/detail': 'Staff.html', 'hari/recruit/detail': 'Recruit.html',
 }
 SYM = {'73476': 'Zutsu.html', '55788': 'Kubikata.html', '63405': 'Youtsu.html', '63457': 'Kubikata.html',
        '64020': 'Hiza.html', '65662': '#symptom', '69433': 'Nenza.html', '76756': 'Karada.html',
