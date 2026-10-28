@@ -10,6 +10,12 @@ TODAY = sys.argv[3] if len(sys.argv) > 3 else (datetime.datetime.utcnow() + date
 BASE = os.environ.get('SITE_BASE', 'https://hayashi-group.jp/').rstrip('/') + '/'
 SITE = 'はやしハリきゅう整骨院 江別本院'
 PREVIEW = os.environ.get('PREVIEW') == '1'  # 仮公開中は検索に出さない
+# Googleアナリティクス（GA4）の測定ID（G-XXXXXXX）。空なら入れない。仮公開中は入れない（テストの閲覧で数字が汚れないように）
+GA_ID = os.environ.get('GA_ID', '').strip()
+def ga_tag():
+    if not GA_ID or PREVIEW or not re.match(r'^G-[A-Z0-9]+$', GA_ID): return ''
+    return ('<script async src="https://www.googletagmanager.com/gtag/js?id=%s"></script>\n'
+            '<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","%s")</script>\n') % (GA_ID, GA_ID)
 import urllib.parse
 BPATH = urllib.parse.urlparse(BASE).path or '/'
 shutil.rmtree(OUT, ignore_errors=True); os.makedirs(OUT)
@@ -123,7 +129,7 @@ def head_extra(f, s):
     return ('<link rel="canonical" href="%s">\n<link rel="icon" href="./img/logo.png">\n<link rel="apple-touch-icon" href="./img/logo.png">\n'
             '<meta property="og:type" content="%s">\n<meta property="og:site_name" content="%s">\n<meta property="og:title" content="%s">\n'
             '<meta property="og:description" content="%s">\n<meta property="og:url" content="%s">\n<meta property="og:image" content="%s">\n'
-            '<meta name="twitter:card" content="summary_large_image">\n' + ('<meta name="robots" content="noindex">\n' if PREVIEW else '')) % (url, 'website' if f == 'Main.html' else 'article', SITE, t, d, url, ogimg)
+            '<meta name="twitter:card" content="summary_large_image">\n' + ('<meta name="robots" content="noindex">\n' if PREVIEW else '') + ga_tag()) % (url, 'website' if f == 'Main.html' else 'article', SITE, t, d, url, ogimg)
 
 def body_of(s): return s[s.find('<body>') + 6: s.rfind('</body>')]
 def head_of(s): return s[s.find('<head>') + 6: s.find('</head>')]

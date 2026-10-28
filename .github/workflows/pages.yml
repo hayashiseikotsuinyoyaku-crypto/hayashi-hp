@@ -20,6 +20,8 @@ jobs:
       # 仮公開中：github.io のアドレス・検索に出さない。本公開の日に hayashi-group.jp / PREVIEW 0 に変える
       SITE_BASE: https://hayashiseikotsuinyoyaku-crypto.github.io/hayashi-hp/
       PREVIEW: '1'
+      # Googleアナリティクスの測定ID（本公開の日に G-XXXXXXX を入れる。仮公開中は入れても使われない）
+      GA_ID: ''
     steps:
       - uses: actions/checkout@v4
       - run: python3 tools/build_site.py src/pages _site
