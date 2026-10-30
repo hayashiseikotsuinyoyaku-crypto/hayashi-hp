@@ -16,7 +16,29 @@ def ga_tag():
     if not GA_ID or PREVIEW or not re.match(r'^G-[A-Z0-9]+$', GA_ID): return ''
     return ('<script async src="https://www.googletagmanager.com/gtag/js?id=%s"></script>\n'
             '<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","%s")</script>\n') % (GA_ID, GA_ID)
-import urllib.parse
+import urllib.parse, urllib.request, json as _gj
+# Googleの口コミ（★と件数）：予約システムの ?p=reviews から毎日読む（院のアカウントの「口コミ取り込み」が毎朝送っている）。読めないときは書いてある数字のまま
+REVIEWS_URL = os.environ.get('REVIEWS_URL', '').strip()
+def load_reviews():
+    if not REVIEWS_URL: return None
+    try:
+        with urllib.request.urlopen(urllib.request.Request(REVIEWS_URL, headers={'User-Agent': 'hayashi-hp-build'}), timeout=30) as r:
+            d = _gj.loads(r.read().decode('utf-8'))
+        if not d.get('ok') or not (0 < float(d.get('rating') or 0) <= 5) or int(d.get('count') or 0) < 1: return None
+        at = datetime.datetime.strptime(str(d.get('at', ''))[:19], '%Y-%m-%dT%H:%M:%S') + datetime.timedelta(hours=9)
+        return {'rating': round(float(d['rating']), 1), 'count': int(d['count']), 'date': '%d年%d月%d日' % (at.year, at.month, at.day)}
+    except Exception as e:
+        print('口コミを読めませんでした（書いてある数字のまま）：', e); return None
+GREV = load_reviews()
+def grev_patch(s):
+    if not GREV: return s
+    r, n, d = GREV['rating'], GREV['count'], GREV['date']
+    s = re.sub(r'aria-label="Googleの口コミ 星[0-9.]+・[0-9,]+件（[^）]*時点）"', 'aria-label="Googleの口コミ 星%.1f・%d件（%s時点）"' % (r, n, d), s)
+    s = re.sub(r'(line-height: 1; color: #1B2A27">)[0-9.]+(</b><span style="display: flex; flex-direction: column; gap: 4px">)', lambda m: m.group(1) + '%.1f' % r + m.group(2), s)
+    s = re.sub(r'(left: 0; top: 0; width: )[0-9.]+(%; overflow: hidden; white-space: nowrap; color: #E8A317)', lambda m: m.group(1) + str(int(round(r / 5 * 100))) + m.group(2), s)
+    s = re.sub(r'(Googleの口コミ <b style="color: #1B2A27">)[0-9,]+件', lambda m: m.group(1) + '%d件' % n, s)
+    s = re.sub(r'[0-9]{4}年[0-9]{1,2}月[0-9]{1,2}日時点。口コミの本文は', d + '時点。口コミの本文は', s)
+    return s
 BPATH = urllib.parse.urlparse(BASE).path or '/'
 shutil.rmtree(OUT, ignore_errors=True); os.makedirs(OUT)
 shutil.copytree(os.path.join(SRC, 'img'), os.path.join(OUT, 'img'))
@@ -164,7 +186,8 @@ for f in pages:
     if f in RELATED:
         s = s.replace('<footer', blog_section('関連するブログ', visible_latest(RELATED[f]), bg='#F7FAF9') + '<footer', 1)
     if f == 'Main.html':
-        sp = rd('Sp.html'); spb = body_of(sp)
+        s = grev_patch(s)
+        sp = grev_patch(rd('Sp.html')); spb = body_of(sp)
         s = s.replace('<section id="access"', blog_section('新着ブログ', LATEST) + '<section id="access"', 1)
         spb = spb.replace('<section style="background: #FFFFFF; padding: 28px 16px 120px', blog_section('新着ブログ', LATEST, sp=True, bg='#F7FAF9') + '<section style="background: #FFFFFF; padding: 28px 16px 120px', 1)
         # スマホ版のidは重ならないように sp- を付ける（ページ内リンクも）

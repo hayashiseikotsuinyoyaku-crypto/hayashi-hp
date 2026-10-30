@@ -22,6 +22,8 @@ jobs:
       PREVIEW: '1'
       # Googleアナリティクスの測定ID（本公開の日に G-XXXXXXX を入れる。仮公開中は入れても使われない）
       GA_ID: ''
+      # Googleの口コミ（★と件数）を予約システムから読む（院のアカウントの「口コミ取り込み」が毎朝6時台に送る）
+      REVIEWS_URL: https://script.google.com/macros/s/AKfycby8QI2NKxAnfMymleQvHoTgtKQzDgCMyrNqpLqohiIJtAdZYc0U1zrNqB5NY5_4kwhf/exec?p=reviews
     steps:
       - uses: actions/checkout@v4
       - run: python3 tools/build_site.py src/pages _site
