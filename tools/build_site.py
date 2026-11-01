@@ -146,7 +146,8 @@ def head_extra(f, s):
     t = re.search(r'<title>(.*?)</title>', s, re.S); t = t.group(1).strip() if t else SITE
     d = re.search(r'<meta name="description" content="([^"]*)"', s); d = d.group(1) if d else ''
     img = re.search(r'<img src="\./img/([^"]+\.(?:jpg|png))"[^>]*>', s[s.find('<main') if '<main' in s else s.find('</header>'):] if '</header>' in s else s)
-    ogimg = BASE + 'img/' + (img.group(1) if img and 'logo' not in img.group(1) else 'logo.png')
+    # URLを貼ったときの画像：ブログの記事はその記事の画像、ほかのページは院の専用画像（ogp.png・代表 11/1：トップが交通事故の絵になっていたため）
+    ogimg = BASE + 'img/' + (img.group(1) if f.startswith('BlogPost') and img and 'logo' not in img.group(1) else 'ogp.png')
     url = BASE + ('' if f == 'Main.html' else f)
     return ('<link rel="canonical" href="%s">\n<link rel="icon" href="./img/logo.png">\n<link rel="apple-touch-icon" href="./img/logo.png">\n'
             '<meta property="og:type" content="%s">\n<meta property="og:site_name" content="%s">\n<meta property="og:title" content="%s">\n'
