@@ -178,9 +178,42 @@ def clinic_ld():
          'address': {'@type': 'PostalAddress', 'postalCode': '067-0031', 'addressRegion': '北海道', 'addressLocality': '江別市', 'streetAddress': '元町32-1', 'addressCountry': 'JP'},
          'openingHoursSpecification': oh, 'medicalSpecialty': 'Musculoskeletal',
          'amenityFeature': [{'@type': 'LocationFeatureSpecification', 'name': '無料駐車場', 'value': True}],
-         'parentOrganization': {'@type': 'Organization', 'name': '株式会社ぴっかぴか'}}
+         'parentOrganization': {'@type': 'Organization', 'name': '株式会社ぴっかぴか'},
+         # 11/11：Google・AI に「いつから・どこで・だれが・何を」を事実で伝える（代表 11/11：AIの検索からも信頼される院に）
+         'foundingDate': '1978-08-18', 'areaServed': [{'@type': 'City', 'name': '江別市'}, {'@type': 'City', 'name': '札幌市'}],
+         'availableService': [{'@type': 'MedicalTherapy', 'name': n} for n in ['骨ぴか整体（骨格矯正）', '鍼（はり）・灸', '交通事故（自賠責保険）のケガの施術', 'ハイボルト療法', 'ショックマスター（衝撃波）', '筋肉矯正', 'ピークパフォーマンスストレッチ（PPS）']],
+         'employee': [{'@type': 'Person', 'name': '林 恒博', 'jobTitle': '総括院長', 'url': BASE + 'Staff.html',
+                       'hasCredential': [{'@type': 'EducationalOccupationalCredential', 'credentialCategory': '国家資格', 'name': n} for n in ['柔道整復師', 'はり師', 'きゅう師']]}]}
     return '<script type="application/ld+json">' + _json.dumps(d, ensure_ascii=False) + '</script>\n'
-written = []
+def _txt(h): return re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', '', h))).strip()
+def faq_ld(s):
+    # 「Q. … A. …」の形（details/summary）を、よくある質問の名札（FAQPage）にする。画面に出ている文そのまま
+    qa = []
+    for m in re.finditer(r'<details\b[^>]*>\s*<summary[^>]*>(.*?)</summary>(.*?)</details>', s, re.S):
+        q = _txt(m.group(1).split('Q.</span>', 1)[-1]); a = _txt(re.sub(r'<b[^>]*>A\.</b>', '', m.group(2)))
+        if 'Q.</span>' not in m.group(1) and not q.endswith('？'): continue   # 質問の形のものだけ（「もっと見る」などは入れない）
+        if q and a and not any(x['name'] == q for x in qa): qa.append({'@type': 'Question', 'name': q, 'acceptedAnswer': {'@type': 'Answer', 'text': a}})
+    if not qa: return ''
+    return '<script type="application/ld+json">' + _json.dumps({'@context': 'https://schema.org', '@type': 'FAQPage', 'mainEntity': qa}, ensure_ascii=False) + '</script>\n'
+def page_name(s):
+    t = re.search(r'<title>(.*?)</title>', s, re.S); t = t.group(1).strip() if t else ''
+    return re.split(r'[｜|]', t)[0].strip() or SITE
+def crumb_ld(f, s):
+    if f == 'Main.html': return ''
+    it = [{'@type': 'ListItem', 'position': 1, 'name': 'ホーム', 'item': BASE}]
+    if f.startswith('BlogPost'): it.append({'@type': 'ListItem', 'position': 2, 'name': 'ブログ', 'item': BASE + 'Blog.html'})
+    it.append({'@type': 'ListItem', 'position': len(it) + 1, 'name': page_name(s), 'item': BASE + f})
+    return '<script type="application/ld+json">' + _json.dumps({'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': it}, ensure_ascii=False) + '</script>\n'
+def post_ld(f, s):
+    if not f.startswith('BlogPost'): return ''
+    d = post_date.get(f, ''); img = re.search(r'<img src="\./img/([^"]+\.(?:jpg|png))"', s[s.find('</header>'):])
+    desc = re.search(r'<meta name="description" content="([^"]*)"', s)
+    o = {'@context': 'https://schema.org', '@type': 'BlogPosting', 'headline': page_name(s)[:110], 'datePublished': d, 'dateModified': d, 'mainEntityOfPage': BASE + f,
+         'author': {'@type': 'Organization', 'name': SITE, 'url': BASE}, 'publisher': {'@type': 'Organization', 'name': SITE, 'logo': {'@type': 'ImageObject', 'url': BASE + 'img/logo.png'}}}
+    if img: o['image'] = BASE + 'img/' + img.group(1)
+    if desc: o['description'] = desc.group(1)
+    return '<script type="application/ld+json">' + _json.dumps(o, ensure_ascii=False) + '</script>\n'
+written = []; LLM = []
 for f in pages:
     if f == 'Sp.html' or f in hidden: continue
     s = rd(f)
@@ -232,8 +265,33 @@ for f in pages:
         s = s[:j] + '<a href="Privacy.html" style="color: #FFFFFF">プライバシーポリシー</a>' + s[j:]
     s = s.replace('</head>', head_extra(f, s) + '</head>', 1)
     if f == 'Main.html': s = s.replace('</head>', clinic_ld() + '</head>', 1)
+    s = s.replace('</head>', crumb_ld(f, s) + post_ld(f, s) + faq_ld(s) + '</head>', 1)
+    LLM.append((f, page_name(s), (re.search(r'<meta name="description" content="([^"]*)"', s) or [None, ''])[1]))
     open(os.path.join(OUT, out_name(f)), 'w', encoding='utf-8').write(s)
     written.append(out_name(f))
+
+# AI（ChatGPT・Gemini など）向けの案内文 llms.txt：この院が何者で、どのページに何があるかを、事実だけで短く（11/11）
+def llms_txt():
+    grp = [('院について・料金・よくある質問', ['Main.html', 'Staff.html', 'Ryokin.html', 'Faq.html', 'System.html', 'Info.html', 'Recruit.html']),
+           ('施術', ['Kotsupika.html', 'Hari.html', 'Biyoshin.html', 'Hivolt.html', 'Shock.html', 'Karada.html', 'Slim.html']),
+           ('交通事故', ['Jiko.html']),
+           ('症状・ケガ', ['Youtsu.html', 'Gikkuri.html', 'Kubikata.html', 'Nechigae.html', 'Zutsu.html', 'Zakotsu.html', 'Gojukata.html', 'Hiza.html', 'Nenza.html', 'Sports.html', 'Tentou.html', 'Yukikaki.html'])]
+    by = {f: (n, d) for f, n, d in LLM}; used = set(); L = []
+    L += ['# ' + SITE, '', '> 北海道江別市元町の整骨院・鍼灸院。骨格矯正「骨ぴか整体」と鍼灸、交通事故（自賠責保険）のケガの施術を行う。1978年開業。予約優先制（予約がなくても受付）。', '',
+          '## 基本情報', '- 名称：はやしハリきゅう整骨院 江別本院（運営：株式会社ぴっかぴか）', '- 住所：〒067-0031 北海道江別市元町32-1（無料駐車場12台）', '- 電話：011-384-5454',
+          '- 受付時間：9:00〜12:00／15:00〜19:00。日曜・祝日も受付', '- 休診：第1水曜日。ほかの水曜日は午後休診', '- 開業：1978年8月18日（会社設立 2014年）',
+          '- 総括院長：林 恒博（柔道整復師・はり師・きゅう師）', '- 予約：LINE・WEB・電話。予約優先制', '- 交通事故：自賠責保険の施術に対応（江別本院で年間300件）', '- ホームページ：' + BASE, '']
+    for title, fs in grp:
+        rows = ['- [%s](%s)%s' % (by[f][0], BASE + ('' if f == 'Main.html' else f), '：' + by[f][1] if by[f][1] else '') for f in fs if f in by]
+        used.update(fs)
+        if rows: L += ['## ' + title] + rows + ['']
+    rest = [f for f, n, d in LLM if f not in used and not f.startswith('BlogPost') and f not in ('Privacy.html', 'Omagari.html', 'Tentore.html', 'Taisou.html', 'Blog.html')]
+    if rest: L += ['## そのほか'] + ['- [%s](%s)%s' % (by[f][0], BASE + f, '：' + by[f][1] if by[f][1] else '') for f in rest] + ['']
+    posts = sorted([f for f in by if f.startswith('BlogPost')], key=lambda f: post_date.get(f, ''), reverse=True)[:20]
+    if posts: L += ['## ブログ（新しい順）'] + ['- [%s](%s)（%s）' % (by[f][0], BASE + f, post_date.get(f, '')) for f in posts] + ['']
+    return '\n'.join(L)
+if not PREVIEW: open(os.path.join(OUT, 'llms.txt'), 'w', encoding='utf-8').write(llms_txt())
+else: open(os.path.join(OUT, 'llms_preview.txt'), 'w', encoding='utf-8').write(llms_txt())   # 仮公開中は名前を変えて置く（中身の確かめ用）
 
 # 2) sitemap・robots・404
 def lastmod(n):
