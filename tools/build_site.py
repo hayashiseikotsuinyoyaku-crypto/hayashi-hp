@@ -213,6 +213,17 @@ def post_ld(f, s):
     if img: o['image'] = BASE + 'img/' + img.group(1)
     if desc: o['description'] = desc.group(1)
     return '<script type="application/ld+json">' + _json.dumps(o, ensure_ascii=False) + '</script>\n'
+def job_ld(f):
+    # 採用ページ：Google の「しごと検索」に載るための名札（JobPosting）。中身は採用ページの募集要項と同じ（変えたら ここも直す）
+    if f != 'Recruit.html': return ''
+    o = {'@context': 'https://schema.org', '@type': 'JobPosting', 'title': '柔道整復師・鍼灸師（正社員）',
+         'description': '<p>1978年創業の整骨院で 一緒に働く柔道整復師・鍼灸師を募集しています。入社3ヶ月以内に施術デビューできる新入社員研修があります。職場見学もできます。</p><p>仕事内容：整骨、鍼灸、トレーナー、骨格矯正、筋肉矯正、美容鍼、EMS、ハイボルト、ショックマスター</p><p>月給：柔道整復師 270,000円／鍼灸師 270,000円／両方の資格 300,000円（いずれも固定時間外手当40時間分を含む）。研修期間3ヶ月は240,000円。</p><p>休日：公休 月9日（2月は8日）、4連休を年2回、年末年始7日。</p><p>勤務時間：9:00〜13:00／15:00〜20:00。残業は月平均22時間。</p><p>保険：健康保険、厚生年金、雇用保険、労災保険、賠償責任保険。</p>',
+         'datePosted': '2026-11-20', 'employmentType': 'FULL_TIME', 'directApply': False, 'url': BASE + 'Recruit.html',
+         'hiringOrganization': {'@type': 'Organization', 'name': '株式会社ぴっかぴか（はやしハリきゅう整骨院 江別本院）', 'sameAs': BASE, 'logo': BASE + 'img/logo.png'},
+         'jobLocation': {'@type': 'Place', 'address': {'@type': 'PostalAddress', 'postalCode': '067-0031', 'addressRegion': '北海道', 'addressLocality': '江別市', 'streetAddress': '元町32-1', 'addressCountry': 'JP'}},
+         'baseSalary': {'@type': 'MonetaryAmount', 'currency': 'JPY', 'value': {'@type': 'QuantitativeValue', 'minValue': 270000, 'maxValue': 300000, 'unitText': 'MONTH'}},
+         'qualifications': '柔道整復師 または はり師・きゅう師（新卒・既卒・ブランクのある方も可）'}
+    return '<script type="application/ld+json">' + _json.dumps(o, ensure_ascii=False) + '</script>\n'
 written = []; LLM = []
 for f in pages:
     if f == 'Sp.html' or f in hidden: continue
@@ -265,7 +276,7 @@ for f in pages:
         s = s[:j] + '<a href="Privacy.html" style="color: #FFFFFF">プライバシーポリシー</a>' + s[j:]
     s = s.replace('</head>', head_extra(f, s) + '</head>', 1)
     if f == 'Main.html': s = s.replace('</head>', clinic_ld() + '</head>', 1)
-    s = s.replace('</head>', crumb_ld(f, s) + post_ld(f, s) + faq_ld(s) + '</head>', 1)
+    s = s.replace('</head>', crumb_ld(f, s) + post_ld(f, s) + faq_ld(s) + job_ld(f) + '</head>', 1)
     LLM.append((f, page_name(s), (re.search(r'<meta name="description" content="([^"]*)"', s) or [None, ''])[1]))
     open(os.path.join(OUT, out_name(f)), 'w', encoding='utf-8').write(s)
     written.append(out_name(f))
