@@ -243,11 +243,22 @@ for f in pages:
         if k > 0:
             e = spb.find('</nav>', k)
             spb = spb[:e] + '<a href="Privacy.html" style="color: #FFFFFF">プライバシーポリシー</a>' + spb[e:]
-        sw = '<style>.v-sp{display:none}@media (max-width:767px){.v-pc{display:none}.v-sp{display:block}}</style>'
+        # 2026-11-21：前は パソコン用とスマホ用の中身を 両方ともページに入れて、見せるほうだけ切りかえていた（大見出しが2つ・同じ文が2回・写真160枚）。
+        # → ページに入れるのはスマホ用だけ。パソコン用は <template>（ページの中身として数えられない・写真も読まない）に入れ、画面が広いときだけ取り出して差しかえる。
+        #   検索（Googleはスマホの画面で読む）とAI（プログラムを動かさずに読む）には スマホ用の1つだけが見える
+        sw = '<style>.v-pc{display:none}.is-pc .v-pc{display:block}.is-pc .v-sp{display:none}</style>'
         sph = re.sub(r'<(meta|title)[^>]*>(?:.*?</title>)?', '', head_of(sp), flags=re.S)
         s = s.replace('</head>', sph + sw + '\n</head>', 1)
-        s = s.replace('<body>', '<body>\n<div class="v-pc">', 1)
-        s = s[:s.rfind('</body>')] + '</div>\n<div class="v-sp">' + spb + '</div>\n<script>(function(){var h=location.hash.slice(1),e;if(h&&matchMedia("(max-width:767px)").matches&&(e=document.getElementById("sp-"+h)))setTimeout(function(){e.scrollIntoView()},50)})()</script>\n</body>' + s[s.rfind('</body>') + 7:]
+        # スマホ用の写真：いちばん上の1枚のほかは 見える所まで来てから読む（パソコンでは読まれない）
+        n_img = [0]
+        def lazy(m):
+            n_img[0] += 1
+            return m.group(0) if (n_img[0] == 1 or 'loading=' in m.group(0)) else m.group(0).replace('<img ', '<img loading="lazy" decoding="async" ', 1)
+        spb = re.sub(r'<img [^>]*>', lazy, spb)
+        # スマホ用の動き（写真の切りかえ）は、パソコンの画面では動かさない（パソコン用のほうだけが動く）
+        spb = re.sub(r'<script>\s*\(function', '<script>if(!document.documentElement.classList.contains("is-pc"))(function', spb)
+        s = s.replace('<body>', '<body>\n<template id="v-pc-t">', 1)
+        s = s[:s.rfind('</body>')] + '</template>\n<div class="v-pc" id="v-pc"></div>\n<script>(function(){var m=matchMedia("(min-width:768px)");if(m.matches){document.documentElement.classList.add("is-pc");document.getElementById("v-pc").appendChild(document.getElementById("v-pc-t").content.cloneNode(true));document.addEventListener("DOMContentLoaded",function(){var e=document.querySelector(".v-sp");if(e)e.remove()})}var w=m.matches;m.addEventListener("change",function(x){if(x.matches!==w)location.reload()})})()</script>\n<div class="v-sp">' + spb + '</div>\n<script>(function(){var h=location.hash.slice(1),e;if(h&&matchMedia("(max-width:767px)").matches&&(e=document.getElementById("sp-"+h)))setTimeout(function(){e.scrollIntoView()},50)})()</script>\n</body>' + s[s.rfind('</body>') + 7:]
     if f == 'Blog.html':
         # 分類のボタン（押すとその分類だけ）。カードに data-cat を付ける
         def card(m):
