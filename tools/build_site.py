@@ -227,6 +227,8 @@ def clinic_ld():
          'foundingDate': '1978-08-18', 'areaServed': [{'@type': 'City', 'name': '江別市'}, {'@type': 'City', 'name': '札幌市'}],
          'availableService': [{'@type': 'MedicalTherapy', 'name': n} for n in ['骨ぴか整体（骨格矯正）', '鍼（はり）・灸', '交通事故（自賠責保険）のケガの施術', 'ハイボルト療法', 'ショックマスター（衝撃波）', '筋肉矯正', 'ピークパフォーマンスストレッチ（PPS）']],
          'employee': [{'@type': 'Person', 'name': '林 恒博', 'jobTitle': '総括院長', 'url': BASE + 'Staff.html',
+                       'description': '男子新体操の選手としてケガと復帰を経験し、全日本選手権大会で優勝三連覇。その経験と運動学・解剖学・スポーツ心理学をもとに、骨格施術と姿勢指導を行う。',
+                       'award': '男子新体操 全日本選手権大会 優勝三連覇', 'knowsAbout': ['骨格矯正', '鍼灸', '交通事故（自賠責保険）のケガ', 'スポーツのケガと復帰', 'スポーツ心理学', '姿勢指導'],
                        'hasCredential': [{'@type': 'EducationalOccupationalCredential', 'credentialCategory': '国家資格', 'name': n} for n in ['柔道整復師', 'はり師', 'きゅう師']]}]}
     return '<script type="application/ld+json">' + _json.dumps(d, ensure_ascii=False) + '</script>\n'
 def _txt(h): return re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', '', h))).strip()
