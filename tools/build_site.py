@@ -43,6 +43,50 @@ BPATH = urllib.parse.urlparse(BASE).path or '/'
 shutil.rmtree(OUT, ignore_errors=True); os.makedirs(OUT)
 shutil.copytree(os.path.join(SRC, 'img'), os.path.join(OUT, 'img'))
 rd = lambda f: open(os.path.join(SRC, f), encoding='utf-8').read()
+
+# ---- お知らせ（2026-11-21）：tools/news.json に書いた分から「お知らせ」のページを作り、トップページのいちばん上に新しい3件を出す ----
+#  ・載せるのは日付が来た分だけ（先の日付は その日になってから出る）。新しい順
+#  ・1件：{"date":"2026-12-01","cat":"お知らせ|休診|ブログ","title":"…","body":["段落",…],"img":"news_x.jpg"(なくてもよい),"link":["Faq.html","文字"](なくてもよい)}
+_nj = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'news.json')
+NEWS = [n for n in (_gj.load(open(_nj, encoding='utf-8')) if os.path.exists(_nj) else []) if n.get('date', '') <= TODAY or PREVIEW or os.environ.get('NEWS_ALL') == '1']
+NEWS.sort(key=lambda n: n['date'], reverse=True)
+_E = html.escape
+def _nd(d): return '%d年%d月%d日' % (int(d[:4]), int(d[5:7]), int(d[8:10]))
+_NC = {'休診': '#B5451B', 'ブログ': '#1F5E8C'}
+def _chip(c): return '<span style="display: inline-block; padding: 1px 10px; border-radius: 999px; background: %s; color: #FFFFFF; font-size: 12px; font-weight: 700; white-space: nowrap">%s</span>' % (_NC.get(c, '#17594F'), _E(c))
+def news_page():
+    base = open(os.path.join(SRC, 'Privacy.html'), encoding='utf-8').read()
+    h, f = base.find('</header>') + 9, base.find('<footer')
+    items = ''.join(
+        '<article id="n%d" style="border: 1px solid #C9D8D4; border-radius: 14px; padding: 20px 22px; background: #FFFFFF; display: flex; flex-direction: column; gap: 10px">'
+        '<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 14px; color: #4A5C58"><time datetime="%s">%s</time>%s</div>'
+        '<h2 style="margin: 0; font-size: 22px; line-height: 1.5; font-weight: 900">%s</h2>%s%s%s</article>'
+        % (i, n['date'], _nd(n['date']), _chip(n.get('cat', 'お知らせ')), _E(n['title']),
+           ('<img src="./img/%s" alt="%s" loading="lazy" style="width: 100%%; max-width: 560px; border-radius: 12px; display: block">' % (_E(n['img']), _E(n['title']))) if n.get('img') else '',
+           ''.join('<p style="margin: 0; font-size: 16px; color: #3A4B47">%s</p>' % _E(x) for x in n.get('body', [])),
+           ('<a href="%s" style="font-weight: 700">%s</a>' % (_E(n['link'][0]), _E(n['link'][1]))) if n.get('link') else '')
+        for i, n in enumerate(NEWS)) or '<p style="margin: 0; color: #3A4B47">いまお知らせはありません。</p>'
+    mid = ('\n<nav aria-label="現在の場所" style="max-width: 1200px; margin: 0 auto; padding: 10px 24px; font-size: 13px; color: #4A5C58"><a href="Main.html">トップ</a> ＞ お知らせ</nav>\n'
+           '<section aria-labelledby="hero-h" style="background: #F2F6F4"><div style="max-width: 900px; margin: 0 auto; padding: 48px 24px 52px; display: flex; flex-direction: column; gap: 16px">'
+           '<h1 id="hero-h" style="margin: 0; font-size: 36px; line-height: 1.4; font-weight: 900">お知らせ</h1>'
+           '<p style="margin: 0; font-size: 16px; color: #3A4B47">休診日・ブログの更新・院からのご案内をお伝えします。</p></div></section>\n'
+           '<section aria-label="お知らせの一覧" style="background: #FFFFFF"><div style="max-width: 900px; margin: 0 auto; padding: 40px 24px 56px; display: flex; flex-direction: column; gap: 16px">%s</div></section>\n') % items
+    out = base[:h] + mid + base[f:]
+    out = re.sub(r'<title>.*?</title>', '<title>お知らせ｜はやしハリきゅう整骨院 江別本院</title>', out, count=1, flags=re.S)
+    out = re.sub(r'<meta name="description" content="[^"]*">', '<meta name="description" content="はやしハリきゅう整骨院 江別本院（江別市）からのお知らせ。休診日、ブログの更新、院からのご案内を新しい順にお伝えします。">', out, count=1)
+    open(os.path.join(SRC, 'News.html'), 'w', encoding='utf-8').write(out)
+news_page()
+def news_strip(sp=False):
+    if not NEWS: return ''
+    rows = ''.join('<a href="News.html#n%d" style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 8px 0; border-top: %s; color: #1B2A27; text-decoration: none"><time datetime="%s" style="font-size: 13px; color: #4A5C58; white-space: nowrap">%s</time>%s<span style="font-weight: 700; font-size: 15px">%s</span></a>'
+                   % (i, '0' if i == 0 else '1px solid #E3ECE9', n['date'], _nd(n['date']), _chip(n.get('cat', 'お知らせ')), _E(n['title'])) for i, n in enumerate(NEWS[:3]))
+    if sp:   # スマホ：場所を取らないように「お知らせ ……… 一覧を見る」を1行にして、その下に件名
+        return ('<section aria-label="お知らせ" style="background: #FFFFFF; border-bottom: 1px solid #DCE5E2"><div style="padding: 4px 16px 6px; display: flex; flex-wrap: wrap; align-items: center">'
+                '<h2 style="margin: 0; flex: 1 1 auto; padding: 4px 0; font-size: 14px; font-weight: 900; color: #17594F">お知らせ</h2>'
+                '<a href="News.html" style="padding: 4px 0; font-size: 13px; font-weight: 700">一覧を見る</a><div style="flex: 1 1 100%%; min-width: 0">%s</div></div></section>\n') % rows.replace('padding: 8px 0;', 'padding: 5px 0;')
+    return ('<section aria-label="お知らせ" style="background: #FFFFFF; border-bottom: 1px solid #DCE5E2"><div style="max-width: 1200px; margin: 0 auto; padding: %s; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px 20px">'
+            '<h2 style="margin: 0; padding: 8px 0; font-size: 15px; font-weight: 900; color: #17594F; white-space: nowrap">お知らせ</h2><div style="flex: 1 1 280px; min-width: 0">%s</div>'
+            '<a href="News.html" style="padding: 8px 0; font-size: 14px; font-weight: 700; white-space: nowrap">一覧を見る</a></div></section>\n') % ('6px 16px' if sp else '6px 24px', rows)
 pages = sorted(f for f in os.listdir(SRC) if f.endswith('.html'))
 
 # 1) ブログの日付
@@ -234,6 +278,10 @@ for f in pages:
         s = grev_patch(s)
         sp = grev_patch(rd('Sp.html')); spb = body_of(sp)
         s = s.replace('<section id="access"', blog_section('新着ブログ', LATEST) + '<section id="access"', 1)
+        assert s.count('</header>') == 1; s = s.replace('</header>', '</header>\n' + news_strip(), 1)
+        s = s.replace('<a href="Blog.html">ブログ</a>', '<a href="News.html">お知らせ</a><a href="Blog.html">ブログ</a>', 1)
+        _k = spb.find('</nav>', spb.find('<nav id="sp-menu"')); assert _k > 0; spb = spb[:_k + 6] + '\n' + news_strip(True) + spb[_k + 6:]
+        spb = spb.replace('<a href="Blog.html" style="display: flex; align-items: center; min-height: 48px;', '<a href="News.html" style="display: flex; align-items: center; min-height: 48px; padding: 0 16px; border-bottom: 1px solid #E3ECE9; color: #1B2A27; text-decoration: none; font-size: 15px; font-weight: 700">お知らせ</a><a href="Blog.html" style="display: flex; align-items: center; min-height: 48px;', 1)
         spb = spb.replace('<section style="background: #FFFFFF; padding: 28px 16px 120px', blog_section('新着ブログ', LATEST, sp=True, bg='#F7FAF9') + '<section style="background: #FFFFFF; padding: 28px 16px 120px', 1)
         # スマホ版のidは重ならないように sp- を付ける（ページ内リンクも）
         ids = set(re.findall(r'id="([^"]+)"', spb)) - {'sp-menu'}
