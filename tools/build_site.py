@@ -128,6 +128,7 @@ RELATED = {
     'Nenza.html': ['BlogPost23.html', 'BlogPost4.html'],
     'Sports.html': ['BlogPost23.html', 'BlogPost13.html'],
     'Zakotsu.html': ['BlogPost28.html', 'BlogPost7.html', 'BlogPost3.html'],
+    'Sango.html': ['BlogPost28.html', 'BlogPost7.html', 'BlogPost9.html'],
     'Karada.html': ['BlogPost25.html', 'BlogPost7.html', 'BlogPost9.html'],
     'Kotsupika.html': ['BlogPost9.html', 'BlogPost7.html'],
     'Jiko.html': ['BlogPost6.html', 'BlogPost11.html', 'BlogPost12.html', 'BlogPost24.html', 'BlogPost14.html', 'BlogPost15.html',
@@ -355,7 +356,7 @@ def llms_txt():
     grp = [('院について・料金・よくある質問', ['Main.html', 'Staff.html', 'Ryokin.html', 'Faq.html', 'System.html', 'Info.html', 'Recruit.html']),
            ('施術', ['Kotsupika.html', 'Hari.html', 'Biyoshin.html', 'Hivolt.html', 'Shock.html', 'Karada.html', 'Slim.html']),
            ('交通事故', ['Jiko.html']),
-           ('症状・ケガ', ['Youtsu.html', 'Gikkuri.html', 'Kubikata.html', 'Nechigae.html', 'Zutsu.html', 'Zakotsu.html', 'Gojukata.html', 'Hiza.html', 'Nenza.html', 'Sports.html', 'Tentou.html', 'Yukikaki.html'])]
+           ('症状・ケガ', ['Youtsu.html', 'Gikkuri.html', 'Kubikata.html', 'Nechigae.html', 'Zutsu.html', 'Zakotsu.html', 'Gojukata.html', 'Hiza.html', 'Nenza.html', 'Sports.html', 'Tentou.html', 'Yukikaki.html', 'Sango.html'])]
     by = {f: (n, d) for f, n, d in LLM}; used = set(); L = []
     L += ['# ' + SITE, '', '> 北海道江別市元町の整骨院・鍼灸院。骨格矯正「骨ぴか整体」と鍼灸、交通事故（自賠責保険）のケガの施術を行う。1978年開業。予約優先制（予約がなくても受付）。', '',
           '## 基本情報', '- 名称：はやしハリきゅう整骨院 江別本院（運営：株式会社ぴっかぴか）', '- 住所：〒067-0031 北海道江別市元町32-1（無料駐車場12台）', '- 電話：011-384-5454',
