@@ -49,7 +49,14 @@ rd = lambda f: open(os.path.join(SRC, f), encoding='utf-8').read()
 #  ・1件：{"date":"2026-12-01","cat":"お知らせ|休診|ブログ","title":"…","body":["段落",…],"img":"news_x.jpg"(なくてもよい),"link":["Faq.html","文字"](なくてもよい)}
 _nj = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'news.json')
 NEWS = [n for n in (_gj.load(open(_nj, encoding='utf-8')) if os.path.exists(_nj) else []) if n.get('date', '') <= TODAY or PREVIEW or os.environ.get('NEWS_ALL') == '1']
-NEWS.sort(key=lambda n: n['date'], reverse=True)
+# 2026-11-22：ブログを出した日に「ブログを更新しました」を自動で足す（手で書かなくてよい）。日付が来ていない記事は足さない
+for _f in sorted(os.listdir(SRC)):
+    if re.match(r'BlogPost\d*\.html$', _f):
+        _s = open(os.path.join(SRC, _f), encoding='utf-8').read()
+        _m = re.search(r'<time datetime="(\d{4}-\d{2}-\d{2})"', _s); _t = re.search(r'<title>(.*?)</title>', _s, re.S)
+        if _m and _t and _m.group(1) <= TODAY:
+            NEWS.append({'date': _m.group(1), 'cat': 'ブログ', 'title': 'ブログ：' + html.unescape(_t.group(1)).split('｜')[0].strip(), 'body': [], 'link': [_f, 'この記事を読む'], 'blog': True})
+NEWS.sort(key=lambda n: (n['date'], 0 if n.get('blog') else 1), reverse=True)
 _E = html.escape
 def _nd(d): return '%d年%d月%d日' % (int(d[:4]), int(d[5:7]), int(d[8:10]))
 _NC = {'休診': '#B5451B', 'ブログ': '#1F5E8C'}
@@ -78,8 +85,9 @@ def news_page():
 news_page()
 def news_strip(sp=False):
     if not NEWS: return ''
+    top = [x for x in enumerate(NEWS) if not x[1].get('blog')][:2]; top = (top + [x for x in enumerate(NEWS) if x[1].get('blog')])[:3]
     rows = ''.join('<a href="News.html#n%d" style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 8px 0; border-top: %s; color: #1B2A27; text-decoration: none"><time datetime="%s" style="font-size: 13px; color: #4A5C58; white-space: nowrap">%s</time>%s<span style="font-weight: 700; font-size: 15px">%s</span></a>'
-                   % (i, '0' if i == 0 else '1px solid #E3ECE9', n['date'], _nd(n['date']), _chip(n.get('cat', 'お知らせ')), _E(n['title'])) for i, n in enumerate(NEWS[:3]))
+                   % (i, '0' if j == 0 else '1px solid #E3ECE9', n['date'], _nd(n['date']), _chip(n.get('cat', 'お知らせ')), _E(n['title'])) for j, (i, n) in enumerate(top))
     if sp:   # スマホ：場所を取らないように「お知らせ ……… 一覧を見る」を1行にして、その下に件名
         return ('<section aria-label="お知らせ" style="background: #FFFFFF; border-bottom: 1px solid #DCE5E2"><div style="padding: 4px 16px 6px; display: flex; flex-wrap: wrap; align-items: center">'
                 '<h2 style="margin: 0; flex: 1 1 auto; padding: 4px 0; font-size: 14px; font-weight: 900; color: #17594F">お知らせ</h2>'
