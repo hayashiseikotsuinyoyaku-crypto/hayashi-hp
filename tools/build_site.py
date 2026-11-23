@@ -241,6 +241,14 @@ def clinic_ld():
                        'hasCredential': [{'@type': 'EducationalOccupationalCredential', 'credentialCategory': '国家資格', 'name': n} for n in ['柔道整復師', 'はり師', 'きゅう師']]}]}
     return '<script type="application/ld+json">' + _json.dumps(d, ensure_ascii=False) + '</script>\n'
 def _txt(h): return re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', '', h))).strip()
+# 2026-11-23：写真を軽い形式（webp）で出す。見た目は同じ・スマホで開くのが速くなる。
+#  ・src/pages/img に 同じ名前の .webp があるときだけ、<img> の src をそちらに変える（ない写真は そのまま）
+#  ・検索やSNSに出す絵（og:image・名札の image・logo）と 動画の表紙（poster）は jpg/png のまま（<img> だけを変える）
+_WEBP = set(os.path.splitext(n)[0] for n in os.listdir(os.path.join(SRC, 'img')) if n.endswith('.webp'))
+def webp_imgs(s):
+    def rep(m):
+        return m.group(1) + m.group(2) + '.webp' + (m.group(4) or '') + '"' if m.group(2) in _WEBP else m.group(0)
+    return re.sub(r'(<img\b[^>]*?\bsrc="\./img/)([^"./?]+)\.(jpg|png)(\?[^"]*)?"', rep, s)
 def faq_ld(s):
     # 「Q. … A. …」の形（details/summary）を、よくある質問の名札（FAQPage）にする。画面に出ている文そのまま
     qa = []
@@ -348,6 +356,7 @@ for f in pages:
     if f == 'Main.html': s = s.replace('</head>', clinic_ld() + '</head>', 1)
     s = s.replace('</head>', crumb_ld(f, s) + post_ld(f, s) + faq_ld(s) + job_ld(f) + '</head>', 1)
     LLM.append((f, page_name(s), (re.search(r'<meta name="description" content="([^"]*)"', s) or [None, ''])[1]))
+    s = webp_imgs(s)
     open(os.path.join(OUT, out_name(f)), 'w', encoding='utf-8').write(s)
     written.append(out_name(f))
 
