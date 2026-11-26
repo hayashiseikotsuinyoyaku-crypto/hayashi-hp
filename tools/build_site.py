@@ -281,6 +281,29 @@ def polish(f, s):
         e = s.find('</ul>', k)
         if 0 < e < s.find('</section>', k): s = s[:e + 5] + '\n' + _CHK_CTA + s[e + 5:]
     return s
+import subprocess as _sp
+_SEGJS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'seg.js')
+def phrase_wrap(s):
+    # 2026-11-26：見出し（h1〜h3）は ことばのかたまりでだけ改行する（「腰の痛／み」「ご相談／ください」にならないように）
+    texts = []
+    heads = list(re.finditer(r'<(h[123])\b[^>]*>(.*?)</\1>', s, re.S))
+    for m in heads:
+        if 'inline-block' in m.group(2): continue
+        for t in re.findall(r'(?:^|>)([^<>]+)(?=<|$)', m.group(2)):
+            if len(t.strip()) >= 9: texts.append(t)
+    texts = sorted(set(texts))
+    if not texts: return s
+    try:
+        res = _json.loads(_sp.run(['node', _SEGJS], input=_json.dumps(texts), capture_output=True, text=True, check=True).stdout)
+    except Exception as e:
+        print('phrase_wrap skipped:', e); return s
+    mp = {t: ''.join('<span style="display:inline-block">%s</span>' % c for c in ch) for t, ch in zip(texts, res) if len(ch) > 1}
+    def rep(m):
+        if 'inline-block' in m.group(2): return m.group(0)
+        inner = re.sub(r'(^|>)([^<>]+)(?=<|$)', lambda x: x.group(1) + mp.get(x.group(2), x.group(2)), m.group(2))
+        return m.group(0)[:m.start(2) - m.start(0)] + inner + '</%s>' % m.group(1)
+    s = re.sub(r'<(h[123])\b[^>]*>(.*?)</\1>', rep, s, flags=re.S)
+    return s.replace('</head>', '<style>h1,h2,h3{text-wrap:balance}</style>\n</head>', 1)
 def faq_ld(s):
     # 「Q. … A. …」の形（details/summary）を、よくある質問の名札（FAQPage）にする。画面に出ている文そのまま
     qa = []
@@ -390,6 +413,7 @@ for f in pages:
     s = s.replace('</head>', crumb_ld(f, s) + post_ld(f, s) + faq_ld(s) + job_ld(f) + '</head>', 1)
     LLM.append((f, page_name(s), (re.search(r'<meta name="description" content="([^"]*)"', s) or [None, ''])[1]))
     s = webp_imgs(s)
+    s = phrase_wrap(s)
     open(os.path.join(OUT, out_name(f)), 'w', encoding='utf-8').write(s)
     written.append(out_name(f))
 
