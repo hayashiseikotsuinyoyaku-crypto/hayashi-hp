@@ -403,6 +403,9 @@ for f in pages:
         s = re.sub(r'(<a href="Blog\.html"[^>]*>ブログ(?:（[^<]*）)?)(?=</a>)', lambda m: m.group(1) + NEWB_S, s)
     # 「上へ」ボタン（下にスクロールすると右下に出る。押すとページの一番上へ）
     s = s.replace('</body>', TOTOP + '</body>', 1)
+    # 2026-11-27：data-auto の付いた動画は 画面に入ったら 音なしで自動再生・外れたら止める（代表の依頼）。「動きを減らす」設定の端末では 自動では動かさない
+    if 'data-auto' in s:
+        s = s.replace('</body>', '<script>document.addEventListener("DOMContentLoaded",function(){var v=document.querySelectorAll("video[data-auto]");if(!v.length||!("IntersectionObserver" in window)||matchMedia("(prefers-reduced-motion: reduce)").matches)return;var o=new IntersectionObserver(function(es){es.forEach(function(e){var x=e.target;if(e.isIntersecting&&e.intersectionRatio>=0.6){x.muted=true;var p=x.play();if(p&&p.catch)p.catch(function(){})}else{x.pause()}})},{threshold:[0,0.6]});v.forEach(function(x){x.muted=true;x.loop=true;x.playsInline=true;o.observe(x)})})</script>\n</body>', 1)
     # すべてのページの一番下に「プライバシーポリシー」
     i = s.rfind('</footer>')
     if i > 0 and 'Privacy.html' not in s[s.rfind('<footer', 0, i):i]:
