@@ -134,7 +134,7 @@ RELATED = {
     'Zakotsu.html': ['BlogPost28.html', 'BlogPost7.html', 'BlogPost3.html'],
     'Sango.html': ['BlogPost28.html', 'BlogPost7.html', 'BlogPost9.html'],
     'Karada.html': ['BlogPost25.html', 'BlogPost7.html', 'BlogPost9.html'],
-    'Kotsupika.html': ['BlogPost9.html', 'BlogPost7.html'],
+    'Kotsupika.html': ['BlogPost29.html', 'BlogPost9.html', 'BlogPost7.html'],
     'Jiko.html': ['BlogPost6.html', 'BlogPost11.html', 'BlogPost12.html', 'BlogPost24.html', 'BlogPost14.html', 'BlogPost15.html',
                   'BlogPost16.html', 'BlogPost18.html', 'BlogPost19.html', 'BlogPost21.html'],
 }
