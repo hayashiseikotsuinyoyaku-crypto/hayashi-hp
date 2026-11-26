@@ -88,6 +88,8 @@ def news_strip(sp=False):
     top = [x for x in enumerate(NEWS) if not x[1].get('blog')][:2]; top = (top + [x for x in enumerate(NEWS) if x[1].get('blog')])[:3]
     rows = ''.join('<a href="News.html#n%d" style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 8px 0; border-top: %s; color: #1B2A27; text-decoration: none"><time datetime="%s" style="font-size: 13px; color: #4A5C58; white-space: nowrap">%s</time>%s<span style="font-weight: 700; font-size: 15px">%s</span></a>'
                    % (i, '0' if j == 0 else '1px solid #E3ECE9', n['date'], _nd(n['date']), _chip(n.get('cat', 'お知らせ')), _E(n['title'])) for j, (i, n) in enumerate(top))
+    if sp:   # 2026-11-26：スマホは最初の画面で院の顔が見えるように 件名は新しい1件だけ
+        rows = rows[:rows.find('</a>') + 4]
     if sp:   # スマホ：場所を取らないように「お知らせ ……… 一覧を見る」を1行にして、その下に件名
         return ('<section aria-label="お知らせ" style="background: #FFFFFF; border-bottom: 1px solid #DCE5E2"><div style="padding: 4px 16px 6px; display: flex; flex-wrap: wrap; align-items: center">'
                 '<h2 style="margin: 0; flex: 1 1 auto; padding: 4px 0; font-size: 14px; font-weight: 900; color: #17594F">お知らせ</h2>'
@@ -251,12 +253,36 @@ def webp_imgs(s):
     def rep(m):
         return m.group(1) + m.group(2) + '.webp' + (m.group(4) or '') + '"' if m.group(2) in _WEBP else m.group(0)
     return re.sub(r'(<img\b[^>]*?\bsrc="\./img/)([^"./?]+)\.(jpg|png)(\?[^"]*)?"', rep, s)
+_SPNAV = re.search(r'<nav aria-label="予約・お問い合わせ".*?</nav>', open(os.path.join(SRC, 'Sp.html'), encoding='utf-8').read(), re.S).group(0)
+BKBAR = ('<style>#bkbar,#bkbar a{font-family:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif}#bkbar{display:none!important}@media (max-width:767px){#bkbar{display:grid!important;position:fixed!important}body{padding-bottom:84px}#totop{bottom:100px!important}}</style>\n'
+         + _SPNAV.replace('<nav ', '<nav id="bkbar" ', 1) + '\n')
+_CTA_NOTE = '<p style="margin: 6px 0 0; color: #FFFFFF; font-size: 15px">初回は約60分です　ご予約がなくても受付しています　<a href="Ryokin.html" style="color: #FFFFFF; font-weight: 700">料金の目安を見る</a></p>'
+_CHK_CTA = ('<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 6px"><b style="flex: 1 1 100%; color: #17594F">ひとつでも当てはまったらお気軽にどうぞ</b>'
+            '<a href="https://lin.ee/aRHpprR" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 20px; border-radius: 12px; background: #04893F; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 16px">LINEでまず相談する</a>'
+            '</div>')
+def polish(f, s):
+    # 2026-11-26：写真の説明（alt）が空で すぐ下に説明の字があるものは その字を alt に入れる
+    s = re.sub(r'(<img\b[^>]*?)alt=""([^>]*>\s*<figcaption[^>]*>)([^<]+)(</figcaption>)', lambda m: m.group(1) + 'alt="%s"' % html.escape(m.group(3).strip(), quote=True) + m.group(2) + m.group(3) + m.group(4), s)
+    if f in ('Main.html', 'Sp.html') or 'https://lin.ee/aRHpprR' not in s: return s
+    # 予約の帯（スマホだけ・下に出し続ける）
+    s = s.replace('</body>', BKBAR + '</body>', 1)
+    # しめくくりの予約の所に 時間と料金の案内
+    k = s.find('id="cta-h"')
+    if k > 0:
+        e = s.find('</p>', k)
+        if 0 < e < s.find('</section>', k): s = s[:e + 4] + '\n' + _CTA_NOTE + s[e + 4:]
+    # チェック項目のすぐ下に 相談と予約のボタン
+    k = s.find('<section id="chk"')
+    if k > 0:
+        e = s.find('</ul>', k)
+        if 0 < e < s.find('</section>', k): s = s[:e + 5] + '\n' + _CHK_CTA + s[e + 5:]
+    return s
 def faq_ld(s):
     # 「Q. … A. …」の形（details/summary）を、よくある質問の名札（FAQPage）にする。画面に出ている文そのまま
     qa = []
     for m in re.finditer(r'<details\b[^>]*>\s*<summary[^>]*>(.*?)</summary>(.*?)</details>', s, re.S):
         q = _txt(m.group(1).split('Q.</span>', 1)[-1]); a = _txt(re.sub(r'<b[^>]*>A\.</b>', '', m.group(2)))
-        if 'Q.</span>' not in m.group(1) and not q.endswith('？'): continue   # 質問の形のものだけ（「もっと見る」などは入れない）
+        if 'もっと見る' in q: continue   # 質問の形のものだけ（「もっと見る」などは入れない）
         if q and a and not any(x['name'] == q for x in qa): qa.append({'@type': 'Question', 'name': q, 'acceptedAnswer': {'@type': 'Answer', 'text': a}})
     if not qa: return ''
     return '<script type="application/ld+json">' + _json.dumps({'@context': 'https://schema.org', '@type': 'FAQPage', 'mainEntity': qa}, ensure_ascii=False) + '</script>\n'
@@ -341,6 +367,7 @@ for f in pages:
             s = s.replace('</body>', '''<style>[data-f][aria-pressed="true"]{background:#17594F!important;color:#fff!important}</style>
 <script>document.querySelectorAll('[data-f]').forEach(function(b){b.onclick=function(){var f=b.dataset.f;document.querySelectorAll('[data-f]').forEach(function(x){x.setAttribute('aria-pressed',String(x===b))});document.querySelectorAll('a[data-cat]').forEach(function(a){a.style.display=!f||a.dataset.cat===f?'':'none'})}})</script>
 </body>''', 1)
+    s = polish(f, s)
     s = fix_links(s)
     if f == 'Blog.html':
         for nf in NEW:
