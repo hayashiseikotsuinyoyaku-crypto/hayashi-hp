@@ -256,13 +256,17 @@ def webp_imgs(s):
 _SPNAV = re.search(r'<nav aria-label="予約・お問い合わせ".*?</nav>', open(os.path.join(SRC, 'Sp.html'), encoding='utf-8').read(), re.S).group(0)
 BKBAR = ('<style>#bkbar,#bkbar a{font-family:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif}#bkbar{display:none!important}@media (max-width:767px){#bkbar{display:grid!important;position:fixed!important}body{padding-bottom:84px}#totop{bottom:100px!important}}</style>\n'
          + _SPNAV.replace('<nav ', '<nav id="bkbar" ', 1) + '\n')
-_CTA_NOTE = '<p style="margin: 6px 0 0; color: #FFFFFF; font-size: 15px">初回は約60分です　ご予約がなくても受付しています　<a href="Ryokin.html" style="color: #FFFFFF; font-weight: 700">料金の目安を見る</a></p>'
+_CTA_NOTE = '<p style="margin: 6px 0 0; color: #FFFFFF; font-size: 15px"><span style="display: inline-block">初回は約60分です</span> <span style="display: inline-block">ご予約がなくても受付しています</span> <a href="Ryokin.html" style="display: inline-block; color: #FFFFFF; font-weight: 700">料金の目安を見る</a></p>'
 _CHK_CTA = ('<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 6px"><b style="flex: 1 1 100%; color: #17594F">ひとつでも当てはまったらお気軽にどうぞ</b>'
             '<a href="https://lin.ee/aRHpprR" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 20px; border-radius: 12px; background: #04893F; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 16px">LINEでまず相談する</a>'
             '</div>')
 def polish(f, s):
     # 2026-11-26：写真の説明（alt）が空で すぐ下に説明の字があるものは その字を alt に入れる
     s = re.sub(r'(<img\b[^>]*?)alt=""([^>]*>\s*<figcaption[^>]*>)([^<]+)(</figcaption>)', lambda m: m.group(1) + 'alt="%s"' % html.escape(m.group(3).strip(), quote=True) + m.group(2) + m.group(3) + m.group(4), s)
+    # 2026-11-26：しめくくりの見出しと住所の行は ことばの切れ目でだけ改行する（「が／まんせずに」「32-／1」にならないように）
+    _ib = lambda t: '<span style="display: inline-block">%s</span>' % t
+    s = s.replace('つらいときはがまんせずにご相談ください</h2>', _ib('ツライときは') + _ib('ガマンせずに') + _ib('ご相談ください') + '</h2>')
+    s = re.sub(r'(<p style="margin: 0; color: #D6E2DF">)([^<]*〒[^<]*)(</p>)', lambda m: m.group(1) + ' '.join(_ib(x) for x in m.group(2).split('　')) + m.group(3), s)
     if f in ('Main.html', 'Sp.html') or 'https://lin.ee/aRHpprR' not in s: return s
     # 予約の帯（スマホだけ・下に出し続ける）
     s = s.replace('</body>', BKBAR + '</body>', 1)
