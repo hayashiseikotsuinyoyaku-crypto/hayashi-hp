@@ -265,7 +265,7 @@ def polish(f, s):
     s = re.sub(r'(<img\b[^>]*?)alt=""([^>]*>\s*<figcaption[^>]*>)([^<]+)(</figcaption>)', lambda m: m.group(1) + 'alt="%s"' % html.escape(m.group(3).strip(), quote=True) + m.group(2) + m.group(3) + m.group(4), s)
     # 2026-11-26：しめくくりの見出しと住所の行は ことばの切れ目でだけ改行する（「が／まんせずに」「32-／1」にならないように）
     _ib = lambda t: '<span style="display: inline-block">%s</span>' % t
-    s = s.replace('つらいときはがまんせずにご相談ください</h2>', _ib('ツライときは') + _ib('ガマンせずに') + _ib('ご相談ください') + '</h2>')
+    s = s.replace('つらいときはがまんせずにご相談ください</h2>', _ib('辛いときは') + _ib('ガマンせずに') + _ib('ご相談ください') + '</h2>')
     s = re.sub(r'(<p style="margin: 0; color: #D6E2DF">)([^<]*〒[^<]*)(</p>)', lambda m: m.group(1) + ' '.join(_ib(x) for x in m.group(2).split('　')) + m.group(3), s)
     if f in ('Main.html', 'Sp.html') or 'https://lin.ee/aRHpprR' not in s: return s
     # 予約の帯（スマホだけ・下に出し続ける）
