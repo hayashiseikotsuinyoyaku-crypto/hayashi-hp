@@ -297,7 +297,7 @@ def phrase_wrap(s):
         res = _json.loads(_sp.run(['node', _SEGJS], input=_json.dumps(texts), capture_output=True, text=True, check=True).stdout)
     except Exception as e:
         print('phrase_wrap skipped:', e); return s
-    mp = {t: ''.join('<span style="display:inline-block">%s</span>' % c for c in ch) for t, ch in zip(texts, res) if len(ch) > 1}
+    mp = {t: ''.join('<span style="display:inline-block;max-width:100%%">%s</span>' % c for c in ch) for t, ch in zip(texts, res) if len(ch) > 1}
     def rep(m):
         if 'inline-block' in m.group(2): return m.group(0)
         inner = re.sub(r'(^|>)([^<>]+)(?=<|$)', lambda x: x.group(1) + mp.get(x.group(2), x.group(2)), m.group(2))
